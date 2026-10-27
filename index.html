@@ -164,7 +164,7 @@ fieldset > small { color: var(--muted); font-size: 0.88rem; line-height: 1.45; m
 <header class="site-head">
   <div class="wrap">
     <span class="logo" id="head-logo" role="img" aria-label="EXTRAMILE קשרי נדל״ן"></span>
-    <div class="head-contact">ארז מרקוביץ · <b dir="ltr">054-8383333</b></div>
+    <div class="head-contact" id="head-contact">ארז מרקוביץ · <b dir="ltr">054-8383333</b></div>
   </div>
 </header>
 
@@ -582,11 +582,26 @@ function update() {
   report.innerHTML = reportHtml(s, r);
   renderSums(s, r);
   if (!shareBox.hidden) fillShare(s);
+  document.getElementById('head-contact').innerHTML =
+    [esc(s.agent), s.phone && `<b dir="ltr">${esc(s.phone)}</b>`].filter(Boolean).join(' · ');
   document.getElementById('mbar-label').textContent = r.mortgage ? 'משכנתא נדרשת' : 'נשאר לכם בסוף';
   document.getElementById('mbar-value').innerHTML = ils(r.mortgage || r.surplus);
 }
 
-form.addEventListener('input', update);
+// each agent's name and phone stay on their own device, so they type them once
+const AGENT_KEY = 'extramile-agent';
+const agentEl = document.getElementById('agent'), phoneEl = document.getElementById('phone');
+function loadAgent() {
+  try { return JSON.parse(localStorage.getItem(AGENT_KEY)); } catch { return null; }
+}
+function saveAgent() {
+  try { localStorage.setItem(AGENT_KEY, JSON.stringify({ agent: agentEl.value, phone: phoneEl.value })); } catch { /* storage blocked: the fields just reset next time */ }
+}
+
+form.addEventListener('input', e => {
+  if (e.target === agentEl || e.target === phoneEl) saveAgent();
+  update();
+});
 form.addEventListener('change', e => {
   if (e.target.name === 'kind') {
     // a home upgrader is the one selling; a first-time buyer has nothing to sell;
@@ -603,7 +618,11 @@ form.addEventListener('focusout', e => {
 if (restoreFrom(location.hash)) {
   const agent = document.getElementById('agent').value.trim();
   document.getElementById('example').textContent =
-    `${agent || 'הסוכן שלכם'} הכין לכם את החישוב הזה עם המספרים של העסקה שלכם. אפשר לשנות כל מספר ולראות מיד איך זה משפיע.`;
+    `החישוב הזה הוכן עבורכם${agent ? ` על ידי ${agent}` : ''}, עם המספרים של העסקה שלכם. אפשר לשנות כל מספר ולראות מיד איך זה משפיע.`;
+} else {
+  // a link from an agent carries that agent's details; only a fresh form takes the ones saved on this device
+  const saved = loadAgent();
+  if (saved) { agentEl.value = saved.agent || ''; phoneEl.value = saved.phone || ''; }
 }
 update();
 
