@@ -254,7 +254,7 @@ fieldset > small { color: var(--muted); font-size: 0.88rem; line-height: 1.45; m
       <legend>המימון</legend>
       <p class="intro">הכסף שיש לכם מול העלות הכוללת. מה שחסר הוא המשכנתא, והבנק בודק שני דברים: כמה אחוז מהמחיר הוא מממן, וכמה ההחזר החודשי מהכנסתכם.</p>
       <div class="fields">
-        <label class="f"><span>הון עצמי נוסף</span><span class="inp"><input id="equity" data-k="equity" data-money inputmode="numeric" value="0"><i>₪</i></span><small>חסכונות, עזרה מהמשפחה.</small></label>
+        <label class="f"><span>הון עצמי</span><span class="inp"><input id="equity" data-k="equity" data-money inputmode="numeric" value="0"><i>₪</i></span><small>חסכונות ועזרה מהמשפחה. בלי הכסף מהמכירה, כי הוא כבר נספר למעלה.</small></label>
         <label class="f"><span>ריבית ממוצעת משוערת</span><span class="inp"><input id="rate" data-k="rate" inputmode="decimal" value="4.5"><i>%</i></span><small>לעדכן לפי ההצעה מהבנק.</small></label>
         <label class="f"><span>תקופת המשכנתא</span><span class="inp"><input id="years" data-k="years" inputmode="numeric" value="30"><i>שנים</i></span><small>תקופה ארוכה יותר מורידה את ההחזר החודשי, אבל מעלה את סך הריבית.</small></label>
         <label class="f"><span>הכנסה חודשית נטו של משק הבית</span><span class="inp"><input id="income" data-k="income" data-money inputmode="numeric" placeholder="לא חובה"><i>₪</i></span><small>כדי לבדוק אם הבנק יאשר את ההחזר.</small></label>
@@ -487,7 +487,7 @@ function reportHtml(s, r) {
 
   const finBlock = block('המימון', [
     r.sale ? row('הכסף מהמכירה', ils(r.sale.net)) : '',
-    optional('הון עצמי נוסף', s.equity),
+    optional('הון עצמי', s.equity),
     row('העלות הכוללת של העסקה', ils(r.needed, true)),
     r.mortgage
       ? row('משכנתא נדרשת', ils(r.mortgage), '', 'total key')
