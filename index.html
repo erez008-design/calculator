@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>מחשבון עלויות עסקה</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Gveret+Levin&display=swap">
+<style>
+/* Layout: brand header, navy hero band, then the form beside a paper report that is also the PDF. Light only, like extra-mile.co.il. */
+:root {
+  --cyan: #00adee;
+  --cyan-text: #0077b3;
+  --navy: #0f3d5e;
+  --navy-ink: #0b2a42;
+  --sky: #c4e6f7;
+  --ink: #1d1d1b;
+  --muted: #4a5865;
+  --line: #dde5ec;
+  --bg-alt: #f2f7fa;
+  --paper: #ffffff;
+  --good: #17693a; --good-bg: #e2f3e8;
+  --warn: #7a5000; --warn-bg: #fcefd2;
+  --bad: #a3221b; --bad-bg: #fbe4e1;
+  --font: "Assistant", "Arial Hebrew", Arial, sans-serif;
+  --hand: "Gveret Levin", "Assistant", "Arial Hebrew", cursive;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font); font-size: 1.0625rem; line-height: 1.6; direction: rtl; }
+.wrap { max-width: 1200px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; margin: 0; }
+
+/* header + hero */
+.site-head .wrap { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-block: 0.9rem; }
+.logo { display: block; width: 150px; }
+.logo svg { display: block; width: 100%; height: auto; }
+.head-contact { color: var(--muted); font-size: 0.95rem; text-align: left; }
+.head-contact b { color: var(--navy); font-weight: 800; }
+.hero { background: var(--navy); color: #fff; border-bottom: 6px solid var(--cyan); }
+.hero .wrap { padding-block: clamp(1.6rem, 4vw, 2.6rem); display: grid; gap: 0.6rem; }
+.hero h1 { font-family: var(--hand); font-weight: 400; font-size: clamp(2.1rem, 6vw, 3.2rem); }
+.hero p { margin: 0; max-width: 62ch; color: var(--sky); font-size: 1.125rem; }
+.hero .example { color: #fff; font-weight: 700; }
+
+/* main grid */
+.layout { display: grid; gap: 2rem; padding-block: 2rem 6rem; }
+@media (min-width: 1000px) {
+  .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: start; }
+  .report-col { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow: auto; }
+}
+
+/* form */
+form { display: grid; gap: 1.25rem; min-width: 0; }
+fieldset { border: 0; margin: 0; padding: 1.1rem 1.1rem 1.25rem; background: var(--bg-alt); display: grid; gap: 0.9rem; min-width: 0; }
+legend { float: right; width: 100%; font-weight: 800; font-size: 1.2rem; color: var(--navy); padding: 0; margin-bottom: 0.2rem; }
+legend + * { clear: both; }
+.fields { display: grid; gap: 0.9rem 1rem; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.f { display: grid; gap: 0.25rem; align-content: start; }
+.f > span { font-weight: 700; font-size: 0.98rem; }
+.f small { color: var(--muted); font-size: 0.88rem; line-height: 1.45; }
+.inp { display: flex; align-items: stretch; background: var(--paper); border: 2px solid var(--line); }
+.inp:focus-within { border-color: var(--cyan-ui, var(--cyan)); }
+.inp input { flex: 1; min-width: 0; border: 0; padding: 0.55rem 0.7rem; font: inherit; font-weight: 600; color: var(--ink); background: transparent; outline: none; font-variant-numeric: tabular-nums; }
+.inp input.text { font-weight: 400; }
+.inp i { font-style: normal; display: grid; place-items: center; padding-inline: 0.7rem; color: var(--muted); background: var(--bg-alt); font-weight: 700; }
+.kinds { display: grid; gap: 0.6rem; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.kind { position: relative; display: grid; gap: 0.15rem; padding: 0.75rem 0.9rem; background: var(--paper); border: 2px solid var(--line); cursor: pointer; }
+.kind input { position: absolute; opacity: 0; pointer-events: none; }
+.kind b { font-weight: 800; }
+.kind small { color: var(--muted); font-size: 0.88rem; }
+.kind:has(input:checked) { border-color: var(--navy); box-shadow: inset 0 0 0 1px var(--navy); background: var(--sky); }
+.kind:has(input:focus-visible) { outline: 3px solid var(--navy); outline-offset: 2px; }
+.check { display: flex; align-items: center; gap: 0.55rem; font-weight: 700; cursor: pointer; }
+.check input { width: 1.2rem; height: 1.2rem; accent-color: var(--navy); }
+
+/* report column */
+.report-col { display: grid; gap: 0.9rem; min-width: 0; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; }
+.btn { font: inherit; font-weight: 800; font-size: 1.05rem; padding: 0.65rem 1.8rem; background: var(--cyan); color: var(--navy-ink); border: 2px solid var(--cyan); cursor: pointer; }
+.btn:hover { background: var(--navy); border-color: var(--navy); color: #fff; }
+.btn:disabled { opacity: 0.6; cursor: progress; }
+.status-msg { color: var(--muted); font-size: 0.95rem; }
+
+/* the report: what is on screen is what goes into the PDF */
+#report { background: var(--paper); border: 1px solid var(--line); box-shadow: 0 2px 14px rgba(15, 61, 94, 0.08); padding: 1.6rem 1.5rem; display: grid; gap: 1.2rem; color: var(--ink); direction: rtl; font-family: var(--font);
+  /* a hair of letter-spacing makes the PDF renderer place every letter where the browser laid it out; without it Hebrew words lose their spaces */
+  letter-spacing: 0.01px; }
+#report.exporting { border: 0; box-shadow: none; padding: 0.25rem 0.75rem; }
+.r-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; border-bottom: 3px solid var(--cyan); padding-bottom: 0.9rem; }
+.r-head .logo { width: 120px; }
+.r-title { display: grid; gap: 0.1rem; }
+.r-title h2 { font-size: 1.45rem; font-weight: 800; color: var(--navy); }
+.r-title span { color: var(--muted); font-size: 0.95rem; }
+.r-summary { background: var(--navy); color: #fff; padding: 1.1rem 1.2rem; display: grid; gap: 0.8rem; }
+.r-summary .lead { font-size: 1.05rem; color: var(--sky); }
+.r-summary .big { font-size: clamp(1.9rem, 5vw, 2.4rem); font-weight: 800; line-height: 1.1; }
+.r-figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; border-top: 1px solid rgba(196, 230, 247, 0.35); padding-top: 0.8rem; }
+.r-figs div { display: grid; gap: 0.1rem; min-width: 0; }
+.r-figs span { color: var(--sky); font-size: 0.85rem; }
+.r-figs b { font-size: 1.1rem; font-weight: 800; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.chip { display: inline-block; padding: 0.15rem 0.6rem; font-weight: 700; font-size: 0.92rem; }
+.chip.good { background: var(--good-bg); color: var(--good); }
+.chip.warn { background: var(--warn-bg); color: var(--warn); }
+.chip.bad { background: var(--bad-bg); color: var(--bad); }
+.r-block { display: grid; gap: 0.35rem; }
+.r-block h3 { font-size: 1.1rem; font-weight: 800; color: var(--navy); border-bottom: 1px solid var(--line); padding-bottom: 0.25rem; }
+.r-block table { width: 100%; border-collapse: collapse; }
+.r-block th, .r-block td { padding: 0.4rem 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.r-block th { text-align: right; font-weight: 600; padding-left: 1rem; }
+.r-block th small { display: block; font-weight: 400; color: var(--muted); font-size: 0.86rem; line-height: 1.4; }
+.r-block td { text-align: left; white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; }
+.r-block tr.total th, .r-block tr.total td { border-bottom: 0; border-top: 2px solid var(--navy); font-weight: 800; color: var(--navy); padding-top: 0.5rem; }
+.r-block tr.key td { color: var(--cyan-text); font-size: 1.1rem; }
+.n { unicode-bidi: isolate; }
+.r-notes { background: var(--bg-alt); padding: 0.9rem 1rem; display: grid; gap: 0.4rem; font-size: 0.92rem; }
+.r-notes h3 { font-size: 1rem; font-weight: 800; color: var(--navy); }
+.r-notes ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.3rem; }
+.r-notes li { position: relative; padding-right: 1rem; }
+.r-notes li::before { content: ""; position: absolute; right: 0; top: 0.6em; width: 6px; height: 6px; background: var(--cyan); }
+.r-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.3rem 1rem; color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--line); padding-top: 0.7rem; }
+.brand { font-weight: 800; color: var(--cyan-text); }
+.intro { margin: -0.4rem 0 0; color: var(--muted); font-size: 0.98rem; line-height: 1.55; }
+.sum { display: grid; gap: 0.2rem; background: var(--paper); border-top: 3px solid var(--navy); padding: 0.7rem 0.9rem; }
+.sum div { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.2rem 1rem; }
+.sum b { font-weight: 800; color: var(--navy); }
+.sum strong { font-size: 1.35rem; font-weight: 800; color: var(--navy); font-variant-numeric: tabular-nums; }
+.sum small { color: var(--muted); font-size: 0.9rem; line-height: 1.45; }
+.sum.bad strong, .sum.bad .flag { color: var(--bad); font-weight: 700; }
+.btn.ghost { background: transparent; color: var(--navy); border-color: var(--navy); }
+.btn.ghost:hover { background: var(--navy); color: #fff; }
+.share { display: grid; gap: 0.6rem; padding: 0.9rem 1rem; background: var(--bg-alt); border: 1px solid var(--line); }
+.share p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+.share-row { display: flex; gap: 0.5rem; }
+.share-row input { flex: 1; min-width: 0; font: inherit; font-size: 0.85rem; padding: 0.5rem 0.6rem; border: 2px solid var(--line); background: var(--paper); color: var(--ink); direction: ltr; }
+.share .btn { padding-inline: 1.2rem; text-align: center; text-decoration: none; }
+.r-block .intro { margin: 0; font-size: 0.88rem; }
+.disclaimer { margin: 1.5rem 0 0; padding: 0.85rem 1rem; background: var(--bg-alt); border: 1px solid var(--line); color: var(--muted); font-size: 0.95rem; line-height: 1.6; }
+.disclaimer b, .r-legal b { color: var(--ink); }
+fieldset > small { color: var(--muted); font-size: 0.88rem; line-height: 1.45; margin-top: -0.5rem; }
+.r-flag { margin: -0.4rem 0 0; font-size: 0.88rem; color: var(--muted); }
+.r-legal { border: 1px solid var(--line); padding: 0.75rem 0.9rem; font-size: 0.84rem; line-height: 1.55; color: var(--muted); }
+
+/* phone: the headline number stays in view while typing */
+.mbar { position: fixed; inset: auto 0 0 0; z-index: 5; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-block: 0.7rem calc(0.7rem + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.mbar span { color: var(--sky); font-size: 0.9rem; display: block; }
+.mbar b { font-size: 1.25rem; font-weight: 800; white-space: nowrap; }
+.mbar a { color: var(--navy-ink); background: var(--cyan); font-weight: 800; text-decoration: none; padding: 0.45rem 1rem; white-space: nowrap; }
+@media (min-width: 1000px) { .mbar { display: none; } }
+@media (max-width: 520px) {
+  #report { padding: 1.1rem 0.9rem; }
+  .r-figs { grid-template-columns: 1fr; }
+  .head-contact { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<header class="site-head">
+  <div class="wrap">
+    <span class="logo" id="head-logo" role="img" aria-label="EXTRAMILE קשרי נדל״ן"></span>
+    <div class="head-contact">ארז מרקוביץ · <b dir="ltr">054-8383333</b></div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <h1>כמה באמת עולה לכם העסקה?</h1>
+    <p>מכניסים את מחיר המכירה ואת מחיר הדירה החדשה, ורואים את כל העלויות: מיסים, שכר טרחה, כמה משכנתא צריך ומה ההחזר החודשי. בסוף מורידים דוח אישי.</p>
+    <p class="example" id="example">המספרים בטופס הם דוגמה. החליפו אותם במספרים שלכם.</p>
+  </div>
+</section>
+
+<div class="wrap"><p class="disclaimer" id="legal"></p></div>
+
+<main class="wrap layout">
+  <form id="calc" novalidate>
+    <fieldset>
+      <legend>פרטי הדוח</legend>
+      <p class="intro">השם והטלפון מופיעים בראש הדוח ובתחתיתו.</p>
+      <div class="fields">
+        <label class="f"><span>שם הלקוח</span><span class="inp"><input class="text" id="client" data-k="client" data-t="text" placeholder="למשל: משפחת כהן"></span><small>מופיע בכותרת הדוח.</small></label>
+        <label class="f"><span>הוכן על ידי</span><span class="inp"><input class="text" id="agent" data-k="agent" data-t="text" value="ארז מרקוביץ"></span><small>הסוכן שמלווה אתכם.</small></label>
+        <label class="f"><span>טלפון לחזרה</span><span class="inp"><input class="text" id="phone" data-k="phone" data-t="text" value="054-8383333" dir="ltr"></span><small>למי מתקשרים עם שאלות.</small></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>מי אתם בעסקה הזאת?</legend>
+      <p class="intro">הבחירה קובעת שני דברים: כמה מס רכישה תשלמו, ועד כמה מהמחיר הבנק יכול לממן במשכנתא.</p>
+      <div class="kinds">
+        <label class="kind"><input type="radio" name="kind" id="kind-first" value="first"><b>דירה ראשונה</b><small>אין לכם דירה אחרת. מס רכישה מופחת, ועד 75% מימון.</small></label>
+        <label class="kind"><input type="radio" name="kind" id="kind-upgrade" value="upgrade" checked><b>משפרי דיור</b><small>מוכרים דירה וקונים אחרת. מס רכישה כמו בדירה יחידה, ועד 70% מימון.</small></label>
+        <label class="kind"><input type="radio" name="kind" id="kind-investor" value="investor"><b>דירה נוספת</b><small>הדירה הקיימת נשארת אצלכם, או קונים להשקעה. מס רכישה 8% מהשקל הראשון, ועד 50% מימון.</small></label>
+      </div>
+      <label class="check"><input type="checkbox" id="selling" data-k="selling" checked> יש לנו דירה שאנחנו מוכרים</label>
+      <small>מסמנים אם הכסף מהמכירה הולך לקנייה.</small>
+    </fieldset>
+
+    <fieldset id="sale-fs">
+      <legend>המכירה</legend>
+      <p class="intro">כמה כסף נשאר לכם ביד מהמכירה, אחרי סילוק המשכנתא, העמלות והמיסים. זה הכסף שהולך לדירה החדשה.</p>
+      <div class="fields">
+        <label class="f"><span>מחיר המכירה</span><span class="inp"><input id="salePrice" data-k="salePrice" data-money inputmode="numeric" value="2,100,000"><i>₪</i></span><small>המחיר שסוכם, או המחיר שאתם מצפים לקבל.</small></label>
+        <label class="f"><span>יתרת המשכנתא לסילוק</span><span class="inp"><input id="saleMortgage" data-k="saleMortgage" data-money inputmode="numeric" value="250,000"><i>₪</i></span><small>הבנק מקבל את הסכום הזה ישר מהתמורה. הוא מופיע במכתב יתרה לסילוק.</small></label>
+        <label class="f"><span>עמלת תיווך, לפני מע״מ</span><span class="inp"><input id="saleBrokerPct" data-k="saleBrokerPct" inputmode="decimal" value="2"><i>%</i></span><small>אחוז ממחיר המכירה. המחשבון מוסיף מע״מ של 18%.</small></label>
+        <label class="f"><span>שכר טרחת עורך דין, לפני מע״מ</span><span class="inp"><input id="saleLawyerPct" data-k="saleLawyerPct" inputmode="decimal" value="0.5"><i>%</i></span><small>בדרך כלל 0.5% עד 1% ממחיר המכירה. המחשבון מוסיף מע״מ.</small></label>
+        <label class="f"><span>היטל השבחה</span><span class="inp"><input id="betterment" data-k="betterment" data-money inputmode="numeric" value="0"><i>₪</i></span><small>חל על המוכר כשתוכנית בנייה העלתה את ערך הנכס. בודקים בוועדה המקומית.</small></label>
+        <label class="f"><span>עמלת פירעון מוקדם</span><span class="inp"><input id="penalty" data-k="penalty" data-money inputmode="numeric" value="0"><i>₪</i></span><small>קנס שהבנק גובה על סילוק מוקדם של המשכנתא. גם הוא מופיע במכתב היתרה לסילוק.</small></label>
+        <label class="f"><span>הכנה למכירה ותיקונים</span><span class="inp"><input id="prep" data-k="prep" data-money inputmode="numeric" value="0"><i>₪</i></span><small>צביעה, תיקונים קטנים וניקיון לפני שמציגים את הדירה.</small></label>
+      </div>
+      <label class="check"><input type="checkbox" id="exempt" data-k="exempt" checked> הדירה שנמכרת פטורה ממס שבח</label>
+      <small>בדרך כלל דירת מגורים יחידה, שבבעלותכם 18 חודשים לפחות. בדירה נוספת מורידים את הסימון, ומס השבח מוערך לפי מחיר הקנייה ומועד הקנייה.</small>
+      <div class="fields" id="cg-fs">
+        <label class="f"><span>מחיר הקנייה של הדירה הנמכרת</span><span class="inp"><input id="soldBuyPrice" data-k="soldBuyPrice" data-money inputmode="numeric" value="1,300,000"><i>₪</i></span><small>המחיר ששילמתם כשקניתם את הדירה שאתם מוכרים.</small></label>
+        <label class="f"><span>מתי נקנתה</span><span class="inp"><input type="month" id="soldBuyDate" data-k="soldBuyDate" data-t="text" min="1994-01" value="2012-06" placeholder="2012-06"></span><small>חודש ושנה. דירה שנקנתה לפני 2014 מחושבת בשיטה הליניארית.</small></label>
+        <label class="f"><span>הוצאות שמותר לנכות</span><span class="inp"><input id="soldExpenses" data-k="soldExpenses" data-money inputmode="numeric" value="0"><i>₪</i></span><small>מס הרכישה ששולם, עורך דין ותיווך בקנייה, שיפוצים עם קבלות.</small></label>
+      </div>
+      <div class="sum" id="sum-sale" aria-live="polite"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>הקנייה</legend>
+      <p class="intro">כמה הדירה החדשה עולה באמת: המחיר, ועוד המיסים והתשלומים שמגיעים איתו.</p>
+      <div class="fields">
+        <label class="f"><span>מחיר הדירה החדשה</span><span class="inp"><input id="buyPrice" data-k="buyPrice" data-money inputmode="numeric" value="3,200,000"><i>₪</i></span><small>מס הרכישה מחושב לבד, לפי המדרגות.</small></label>
+        <label class="f"><span>שכר טרחת עורך דין, לפני מע״מ</span><span class="inp"><input id="buyLawyerPct" data-k="buyLawyerPct" inputmode="decimal" value="0.5"><i>%</i></span><small>בדרך כלל 0.5% עד 1% ממחיר הדירה. המחשבון מוסיף מע״מ.</small></label>
+        <label class="f"><span>עמלת תיווך, לפני מע״מ</span><span class="inp"><input id="buyBrokerPct" data-k="buyBrokerPct" inputmode="decimal" value="2"><i>%</i></span><small>אם קונים דרך מתווך. בלי מתווך משאירים 0. המחשבון מוסיף מע״מ.</small></label>
+        <label class="f"><span>שמאי</span><span class="inp"><input id="appraiser" data-k="appraiser" data-money inputmode="numeric" value="2,000"><i>₪</i></span><small>הבנק דורש שמאות לפני שהוא מאשר משכנתא.</small></label>
+        <label class="f"><span>בדק בית</span><span class="inp"><input id="inspection" data-k="inspection" data-money inputmode="numeric" value="0"><i>₪</i></span><small>בדיקה הנדסית של הדירה לפני החתימה. לא חובה, אבל מומלץ.</small></label>
+        <label class="f"><span>יועץ משכנתאות</span><span class="inp"><input id="advisor" data-k="advisor" data-money inputmode="numeric" value="0"><i>₪</i></span><small>אם עובדים עם יועץ. בלי יועץ משאירים 0.</small></label>
+        <label class="f"><span>עמלות בנק ורישום</span><span class="inp"><input id="bankFees" data-k="bankFees" data-money inputmode="numeric" value="0"><i>₪</i></span><small>פתיחת תיק, רישום המשכנתא והערת אזהרה.</small></label>
+      </div>
+      <div class="sum" id="sum-buy" aria-live="polite"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>המעבר</legend>
+      <p class="intro">הוצאות של המעבר עצמו. הן לא חלק מהעסקה, אבל יוצאות מאותו כיס.</p>
+      <div class="fields">
+        <label class="f"><span>הובלה</span><span class="inp"><input id="movers" data-k="movers" data-money inputmode="numeric" value="0"><i>₪</i></span><small>הובלה, אריזה ופירוק.</small></label>
+        <label class="f"><span>שיפוץ וריהוט</span><span class="inp"><input id="renovation" data-k="renovation" data-money inputmode="numeric" value="0"><i>₪</i></span><small>מה שאתם מתכננים להשקיע בדירה החדשה לפני הכניסה.</small></label>
+        <label class="f"><span>שכירות ביניים או גישור</span><span class="inp"><input id="bridgeRent" data-k="bridgeRent" data-money inputmode="numeric" value="0"><i>₪</i></span><small>אם יש פער בין מסירת הדירה הישנה לכניסה לחדשה.</small></label>
+      </div>
+      <div class="sum" id="sum-move" aria-live="polite"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>המימון</legend>
+      <p class="intro">הכסף שיש לכם מול העלות הכוללת. מה שחסר הוא המשכנתא, והבנק בודק שני דברים: כמה אחוז מהמחיר הוא מממן, וכמה ההחזר החודשי מהכנסתכם.</p>
+      <div class="fields">
+        <label class="f"><span>הון עצמי נוסף</span><span class="inp"><input id="equity" data-k="equity" data-money inputmode="numeric" value="0"><i>₪</i></span><small>חסכונות, עזרה מהמשפחה.</small></label>
+        <label class="f"><span>ריבית ממוצעת משוערת</span><span class="inp"><input id="rate" data-k="rate" inputmode="decimal" value="4.5"><i>%</i></span><small>לעדכן לפי ההצעה מהבנק.</small></label>
+        <label class="f"><span>תקופת המשכנתא</span><span class="inp"><input id="years" data-k="years" inputmode="numeric" value="30"><i>שנים</i></span><small>תקופה ארוכה יותר מורידה את ההחזר החודשי, אבל מעלה את סך הריבית.</small></label>
+        <label class="f"><span>הכנסה חודשית נטו של משק הבית</span><span class="inp"><input id="income" data-k="income" data-money inputmode="numeric" placeholder="לא חובה"><i>₪</i></span><small>כדי לבדוק אם הבנק יאשר את ההחזר.</small></label>
+      </div>
+      <div class="sum" id="sum-fin" aria-live="polite"></div>
+    </fieldset>
+  </form>
+
+  <div class="report-col">
+    <div class="actions">
+      <button type="button" class="btn" id="pdf">הורדת הדוח כ-PDF</button>
+      <button type="button" class="btn ghost" id="share-btn" aria-expanded="false" aria-controls="share">שליחת המחשבון עם המספרים</button>
+      <span class="status-msg" id="msg" role="status"></span>
+    </div>
+    <div class="share" id="share" hidden>
+      <p>הקישור כולל את כל המספרים שבטופס. מי שפותח אותו רואה את אותו חישוב, ויכול לשנות כל מספר בעצמו. המספרים לא נשמרים בשום מקום, הם רק בתוך הקישור.</p>
+      <div class="share-row"><input id="share-url" readonly aria-label="קישור למחשבון עם המספרים"><button type="button" class="btn" id="copy">העתקה</button></div>
+      <a class="btn ghost" id="wa" href="#" target="_blank" rel="noopener">שליחה בוואטסאפ</a>
+    </div>
+    <article id="report" dir="rtl" lang="he" aria-live="polite"></article>
+  </div>
+</main>
+
+<div class="mbar" aria-hidden="true">
+  <div><span id="mbar-label">משכנתא נדרשת</span><b id="mbar-value"></b></div>
+  <a href="#report">לדוח המלא</a>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+const LOGO = `<svg width="1122" height="415" viewBox="0 0 1122 415" xmlns="http://www.w3.org/2000/svg"><path d="M61.3 217.4h35.2v-41.2H61.3v-63.1h37.6V69.7H5v238.6h97.7V265H61.3v-47.6zm399.8-32.6c4.2-5.8 6.3-17.1 6.3-34 0-18.4-2.9-31.9-8.9-40.3-5.9-8.4-13.6-13.7-23-15.7s-27.4-3.1-54-3.1h-39.8v216.6H398v-97.7c7.8 0 12.6 1.4 14.4 4.1 1.8 2.8 2.7 10 2.7 21.5v72h52.3v-57.1c0-17.5-.4-28.2-1.4-32.1-.9-3.9-3.3-8.1-7.1-12.8-3.8-4.6-11.3-8.3-22.5-11.1 12.3-1 20.5-4.5 24.7-10.3m-46-27.4c0 9.5-1.3 15.2-3.8 16.9-2.6 1.7-7 2.6-13.3 2.6v-48.2c6.5 0 11 1 13.5 3.2 2.4 2.1 3.7 6.6 3.7 13.5v12zM354.8 4.3h-123v43.3h33.3v260.7h56.3V47.7h33.4V4.3zM247.4 59.2h-47.2l-19.7 91.7c-1.5-8.9-3.4-18.7-5.8-29.3-2.9-13.9-4.9-23.8-5.9-29.8h-54.5l20.5 95.8-20.5 120.8h54.9l5.3-35.3c2.5-15.3 4.5-29.9 5.9-43.6 5.2 31 10.9 57.3 17.1 78.9h52.2L220 187.5l27.4-128.3zm489.9 133.7l-8-55.1c-2.3-17.7-4.5-14.6-6.7-27.6h-72.9v198.2h49.2l.1-142.9 20.6 142.9h34.9l19.6-146.2.1 146.2h49.2V91.7h-73.2l-12.9 101.2zM972 117.8h-56.3v190.5h90.5V265H972V117.8zM841.3 308.3h56.3v-255h-56.3v255zM508.1 71.7l-28.7 236.7h58.2l3.4-38.9h20.1l3 38.9h57.5L589.5 71.7h-81.4zM540.2 231c1.5-19.2 5.1-49.5 10.8-90.9 2.8 36.1 5.7 66.4 8.6 90.9h-19.4zm535.5 34v-47.6h35.2v-41.2h-35.2v-63.1h37.6V69.7h-93.9v238.6h97.6V265h-41.3z" fill="#00adee"/><g fill="#231f20"><path d="M610.9 410.5v-50.2h-6.8v-6.9h15.4v57.1h-8.6z"/><path d="M638.7 366.1h-1.5v-20.6h5.5v6.1c0 5.1-1.6 10.1-4 14.5m11.1 0h-1.5v-20.6h5.5v6.1c0 5.1-1.5 10.1-4 14.5"/><path d="M696.3 371.1l-9.6 23.8H678v-.7l9.4-23c1.1-2.5 3.4-7.2 5.7-10.9h-25.9v-21.2h8.5v14.3h25.2c0 5.3-1.7 10.6-4.6 17.7"/><path d="M743.2 360.3v34.6h-8.6v-34.6h-20.2v-6.9h34.7v6.9h-5.9z"/><path d="M763.4 394.9v-7h11.7v-21.3c0-5.6-3.3-6.6-6.3-6.4l-4.6.3v-6.6c2.7-.6 3.6-.7 6-.7 8.5-.1 13.5 4.5 13.5 14.2v27.5h-20.3z"/><path d="M832.2 374.8v-14.5h-6.8v-6.9h15.4v21.4h-8.6z"/><path d="M878.4 394.9v-25c0-3.2-.7-5.6-2.4-7.2-1.7-1.6-4.4-2.5-8.3-2.5h-3.3l-7.7.5v-7.1l3.9-.2c2.5-.2 4.3-.3 7.3-.3 6.7 0 11.6 1.5 14.7 4.5 3 3 4.3 7.2 4.3 13.2v24.1h-8.5z"/><path d="M924.8 395.3h-.5c-6.4 0-14-.6-18.8-1.2v-40.7h8.5v21.9c7.8.7 10.3-3.8 10.3-9.5v-12.4h8.5v12.1c0 10.5-8 14.9-14.4 14.9-1.6 0-3.4-.1-4.4-.2v8.1c1.6.4 8 .4 10.6.4h.4c14.2 0 18-8.6 18-18.5v-16.8h8.5v16.2c0 16.2-8.9 25.7-26.7 25.7"/><path d="M1003.8 372.9l-7.5 22h-8.5v-.9l7.1-21c1-2.8 3-8.3 5.7-12.7h-21.3v50.2h-8.6v-39.7c0-2.5 1.4-7.1 2.4-10.5h-6.2v-6.9h41.3c.2 7.2-1.8 11.9-4.4 19.5"/></g></svg>`;
+document.getElementById('head-logo').innerHTML = LOGO;
+
+// ---- calculation (pure) ----
+const VAT = 0.18;
+// Purchase tax brackets in force from 16.1.2025, frozen until January 2028
+const BRACKETS = {
+  single: [[1978745, 0], [2347040, 0.035], [6055070, 0.05], [20183565, 0.08], [Infinity, 0.10]],
+  extra: [[6055070, 0.08], [Infinity, 0.10]],
+};
+const KINDS = {
+  first: { tax: 'single', ltv: 0.75, label: 'דירה ראשונה' },
+  upgrade: { tax: 'single', ltv: 0.70, label: 'משפרי דיור' },
+  investor: { tax: 'extra', ltv: 0.50, label: 'דירה נוספת' },
+};
+
+function purchaseTax(price, kind) {
+  let prev = 0;
+  const parts = [];
+  for (const [top, rate] of BRACKETS[kind]) {
+    if (price <= prev) break;
+    const base = Math.min(price, top) - prev;
+    parts.push({ rate, base, tax: base * rate });
+    prev = top;
+  }
+  return { total: Math.round(parts.reduce((a, p) => a + p.tax, 0)), parts };
+}
+
+// Israeli CPI, change over each calendar year in %, December to December. 2026 is an estimate.
+const CPI = {
+  1994: 14.5, 1995: 8.1, 1996: 10.6, 1997: 7.0, 1998: 8.6, 1999: 1.3, 2000: 0, 2001: 1.4, 2002: 6.5, 2003: -1.9,
+  2004: 1.2, 2005: 2.4, 2006: -0.1, 2007: 3.4, 2008: 3.8, 2009: 3.9, 2010: 2.7, 2011: 2.2, 2012: 1.6, 2013: 1.8,
+  2014: -0.2, 2015: -1.0, 2016: -0.2, 2017: 0.4, 2018: 0.8, 2019: 0.6, 2020: -0.7, 2021: 2.8, 2022: 5.3, 2023: 3.0,
+  2024: 3.2, 2025: 2.6, 2026: 1.6,
+};
+// ponytail: yearly rates spread evenly over the months; swap in the monthly CBS index if estimates must match the lawyer's to the shekel
+function cpiAt(y, m) {
+  let idx = 1;
+  for (let yr = 1994; yr < y; yr++) idx *= 1 + (CPI[yr] ?? 2) / 100;
+  return idx * (1 + (CPI[y] ?? 2) / 100) ** ((m - 1) / 12);
+}
+const LINEAR_CUTOFF = new Date(2014, 0, 1);
+// Phase-out of the linear relief: the pre-2014 share pays 5% on 2026 sales, 5 points more each year, 25% from 2030.
+// Not confirmed as enacted; return 0 here to restore the full exemption.
+const pre2014Rate = year => Math.min(0.25, Math.max(0, (year - 2025) * 0.05));
+
+function capitalGainsTax({ salePrice, buyPrice, buyDate, expenses, saleCosts, now }) {
+  const [y, m] = String(buyDate).split('-').map(Number);
+  if (!buyPrice || !y || !m) return null;
+  const bought = new Date(y, m - 1, 15);
+  if (bought >= now) return null;
+  const indexed = (buyPrice + expenses) * cpiAt(now.getFullYear(), now.getMonth() + 1) / cpiAt(y, m);
+  const real = Math.max(0, salePrice - saleCosts - indexed);
+  const linear = bought < LINEAR_CUTOFF;
+  const preShare = linear ? (LINEAR_CUTOFF - bought) / (now - bought) : 0;
+  const preRate = pre2014Rate(now.getFullYear());
+  return { real, linear, preShare, preRate, tax: Math.round(real * (preShare * preRate + (1 - preShare) * 0.25)) };
+}
+
+function pmt(annualRate, years, principal) {
+  const r = annualRate / 12, n = years * 12;
+  if (!principal || !n) return 0;
+  return r ? principal * r / (1 - (1 + r) ** -n) : principal / n;
+}
+
+function calc(s) {
+  const k = KINDS[s.kind];
+  const fee = (price, pct) => price * pct / 100 * (1 + VAT);
+  let sale = null;
+  if (s.selling) {
+    sale = { broker: fee(s.salePrice, s.saleBrokerPct), lawyer: fee(s.salePrice, s.saleLawyerPct) };
+    sale.cg = s.exempt ? null : capitalGainsTax({
+      salePrice: s.salePrice, buyPrice: s.soldBuyPrice, buyDate: s.soldBuyDate, expenses: s.soldExpenses,
+      saleCosts: sale.broker + sale.lawyer + s.betterment, now: s.now || new Date(),
+    });
+    sale.capGains = sale.cg ? sale.cg.tax : 0;
+    sale.costs = sale.broker + sale.lawyer + sale.capGains + s.betterment + s.penalty + s.prep;
+    sale.net = s.salePrice - s.saleMortgage - sale.costs;
+  }
+  const tax = purchaseTax(s.buyPrice, k.tax);
+  const buy = { tax, lawyer: fee(s.buyPrice, s.buyLawyerPct), broker: fee(s.buyPrice, s.buyBrokerPct) };
+  buy.costs = tax.total + buy.lawyer + buy.broker + s.appraiser + s.inspection + s.advisor + s.bankFees;
+  const moving = s.movers + s.renovation + s.bridgeRent;
+  const needed = s.buyPrice + buy.costs + moving;
+  const available = (sale ? sale.net : 0) + s.equity;
+  const mortgage = Math.max(0, needed - available);
+  const maxMortgage = s.buyPrice * k.ltv;
+  const monthly = pmt(s.rate / 100, s.years, mortgage);
+  return {
+    k, sale, buy, moving, needed, available, mortgage, maxMortgage, monthly,
+    surplus: Math.max(0, available - needed),
+    ltv: s.buyPrice ? mortgage / s.buyPrice : 0,
+    equityGap: Math.max(0, mortgage - maxMortgage),
+    pti: s.income ? monthly / s.income : null,
+  };
+}
+
+// ---- reading the form ----
+const form = document.getElementById('calc');
+const toNum = v => +String(v).replace(/[^\d.]/g, '') || 0;
+function readState() {
+  const s = { kind: form.querySelector('[name=kind]:checked').value };
+  form.querySelectorAll('[data-k]').forEach(el => {
+    s[el.dataset.k] = el.type === 'checkbox' ? el.checked : el.dataset.t === 'text' ? el.value.trim() : toNum(el.value);
+  });
+  return s;
+}
+
+// ---- rendering the report ----
+const LEGAL = 'המחשבון והדוח נותנים הערכה כללית בלבד, לפי הנתונים שהוזנו והנחות כלליות. הם אינם ייעוץ משפטי, ייעוץ מס, ייעוץ פיננסי או ייעוץ משכנתאות, ואין להסתמך עליהם בקבלת החלטות. הסכומים בפועל עשויים להיות שונים, בין היתר בגלל שינויי חקיקה, ריבית ומדד ונסיבות אישיות. לפני כל החלטה יש לבדוק את הנתונים מול עורך דין, רואה חשבון או יועץ מס, ויועץ משכנתאות או הבנק. <span class="brand">EXTRAMILE</span> קשרי נדל״ן וסוכניה אינם אחראים לכל החלטה או פעולה שנעשו על סמך המחשבון או הדוח.';
+document.getElementById('legal').innerHTML = `<b>חשוב לפני שמתחילים.</b> ${LEGAL}`;
+const esc = t => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const ils = (n, minus) => `<span class="n" dir="ltr">${minus && n > 0 ? '−' : ''}${Math.round(Math.abs(n)).toLocaleString('en-US')}</span>&nbsp;₪`;
+const pct = x => `${(Math.round(x * 1000) / 10).toLocaleString('en-US')}%`;
+const row = (label, value, note = '', cls = '') =>
+  `<tr class="${cls}"><th scope="row">${label}${note ? `<small>${note}</small>` : ''}</th><td>${value}</td></tr>`;
+const optional = (label, v, minus, note) => (v ? row(label, ils(v, minus), note) : '');
+const BLOCK_INTROS = {
+  'המכירה': 'כמה כסף נשאר לכם ביד מהמכירה, אחרי המשכנתא, העמלות והמיסים.',
+  'הקנייה': 'מחיר הדירה, ועוד כל מה שמשלמים מעבר לו.',
+  'המעבר': 'הוצאות המעבר עצמו, שיוצאות מאותו כיס.',
+  'המימון': 'הכסף שיש לכם מול העלות הכוללת. ההפרש הוא המשכנתא.',
+};
+const block = (title, rows) =>
+  `<section class="r-block"><h3>${title}</h3>${BLOCK_INTROS[title] ? `<p class="intro">${BLOCK_INTROS[title]}</p>` : ''}<table>${rows}</table></section>`;
+const fmt = n => Math.round(n).toLocaleString('en-US');
+
+function reportHtml(s, r) {
+  const date = new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
+  const limit = `עד ${pct(r.k.ltv)} מימון ל${r.k.label}`;
+  const chips = [];
+  if (!r.mortgage) chips.push(['good', 'ממומן בלי משכנתא']);
+  else if (!r.equityGap) chips.push(['good', `בתוך מגבלת המימון: ${limit}`]);
+  else chips.push(['bad', `מעל מגבלת המימון. חסר הון עצמי של ${Math.round(r.equityGap).toLocaleString('en-US')} ₪`]);
+  if (r.pti !== null && r.mortgage) {
+    chips.push(r.pti <= 0.33 ? ['good', `החזר נוח: ${pct(r.pti)} מההכנסה`]
+      : r.pti <= 0.4 ? ['warn', `החזר גבולי: ${pct(r.pti)} מההכנסה`]
+      : ['bad', `החזר גבוה: ${pct(r.pti)} מההכנסה`]);
+  }
+
+  const summary = `<section class="r-summary">
+    <div><div class="lead">${r.mortgage ? 'כדי לסגור את העסקה צריך משכנתא של' : 'לא צריך משכנתא. אחרי כל העלויות נשארים לכם'}</div>
+    <div class="big">${ils(r.mortgage || r.surplus)}</div></div>
+    <div class="chips">${chips.map(([c, t]) => `<span class="chip ${c}">${t}</span>`).join('')}</div>
+    <div class="r-figs">
+      <div><span>הכסף שיש לכם</span><b>${ils(r.available)}</b></div>
+      <div><span>העלות הכוללת</span><b>${ils(r.needed)}</b></div>
+      <div><span>החזר חודשי משוער</span><b>${ils(r.monthly)}</b></div>
+    </div></section>`;
+
+  let saleBlock = '';
+  if (r.sale) {
+    const cg = r.sale.cg;
+    let capRow;
+    if (s.exempt) {
+      capRow = row('מס שבח', ils(0), 'פטור: דירת מגורים יחידה, בבעלותכם 18 חודשים לפחות. עורך הדין בודק את הזכאות.');
+    } else if (!cg) {
+      capRow = row('מס שבח', '—', 'כדי להעריך, ממלאים את מחיר הקנייה ואת מועד הקנייה של הדירה הנמכרת.');
+    } else {
+      const how = !cg.linear ? 'חישוב רגיל: 25% על השבח הריאלי.'
+        : `חישוב ליניארי: ${pct(1 - cg.preShare)} מהשבח נצבר אחרי 2014 וחייב ב-25%. ${pct(cg.preShare)} נצבר עד 2014 ו${cg.preRate ? `חייב ב-${pct(cg.preRate)}` : 'פטור'}.`;
+      capRow = row('מס שבח, הערכה', ils(cg.tax, true),
+        `שבח ריאלי, אחרי הצמדה למדד וניכוי הוצאות: ${Math.round(cg.real).toLocaleString('en-US')} ₪. ${how}`);
+    }
+    saleBlock = block('המכירה', [
+      row('מחיר המכירה', ils(s.salePrice)),
+      optional('סילוק המשכנתא הקיימת', s.saleMortgage, true),
+      optional(`עמלת תיווך, ${s.saleBrokerPct}% ומע״מ`, r.sale.broker, true),
+      optional(`שכר טרחת עורך דין, ${s.saleLawyerPct}% ומע״מ`, r.sale.lawyer, true),
+      capRow,
+      optional('היטל השבחה', s.betterment, true),
+      optional('עמלת פירעון מוקדם', s.penalty, true),
+      optional('הכנה למכירה ותיקונים', s.prep, true),
+      row('נשאר לכם מהמכירה', ils(r.sale.net), '', 'total'),
+    ].join(''));
+  }
+
+  const taxParts = r.buy.tax.parts.filter(p => p.base > 0)
+    .map(p => `${pct(p.rate)} על ${Math.round(p.base).toLocaleString('en-US')} ₪`).join(' · ');
+  const taxNote = `לפי מדרגות ${r.k.tax === 'single' ? 'דירה יחידה' : 'דירה נוספת'}: ${taxParts}`;
+  const buyBlock = block('הקנייה', [
+    row('מחיר הדירה', ils(s.buyPrice)),
+    row('מס רכישה', ils(r.buy.tax.total), taxNote),
+    optional(`שכר טרחת עורך דין, ${s.buyLawyerPct}% ומע״מ`, r.buy.lawyer),
+    optional(`עמלת תיווך, ${s.buyBrokerPct}% ומע״מ`, r.buy.broker),
+    optional('שמאי', s.appraiser),
+    optional('בדק בית', s.inspection),
+    optional('יועץ משכנתאות', s.advisor),
+    optional('עמלות בנק ורישום', s.bankFees),
+    row('עלות הקנייה הכוללת', ils(s.buyPrice + r.buy.costs),
+      `מתוכה ${Math.round(r.buy.costs).toLocaleString('en-US')} ₪ מעבר למחיר הדירה`, 'total'),
+  ].join(''));
+
+  const moveBlock = r.moving ? block('המעבר', [
+    optional('הובלה', s.movers),
+    optional('שיפוץ וריהוט', s.renovation),
+    optional('שכירות ביניים או גישור', s.bridgeRent),
+    row('סך עלויות המעבר', ils(r.moving), '', 'total'),
+  ].join('')) : '';
+
+  const finBlock = block('המימון', [
+    r.sale ? row('הכסף מהמכירה', ils(r.sale.net)) : '',
+    optional('הון עצמי נוסף', s.equity),
+    row('העלות הכוללת של העסקה', ils(r.needed, true)),
+    r.mortgage
+      ? row('משכנתא נדרשת', ils(r.mortgage), '', 'total key')
+      : row('נשאר לכם בסוף', ils(r.surplus), '', 'total key'),
+    r.mortgage ? row('אחוז מימון', pct(r.ltv), `המקסימום: ${limit}, כלומר עד ${Math.round(r.maxMortgage).toLocaleString('en-US')} ₪`) : '',
+    r.mortgage ? row('החזר חודשי משוער', ils(r.monthly), `ריבית ממוצעת של ${s.rate}% ל-${s.years} שנה, בלוח שפיצר`) : '',
+    r.pti !== null && r.mortgage ? row('ההחזר מתוך ההכנסה', pct(r.pti), 'בנקים מאשרים בדרך כלל עד כ-40% מההכנסה הפנויה. עד שליש נחשב נוח.') : '',
+  ].join(''));
+
+  const notes = [];
+  if (s.kind === 'upgrade') notes.push('קונים לפני שמוכרים? יש 18 חודשים למכור את הדירה הקיימת כדי לשלם מס רכישה לפי מדרגות דירה יחידה. עד שהכסף מהמכירה מגיע, אפשר לגשר בהלוואת גישור.');
+  notes.push('מדרגות מס הרכישה בתוקף מ-16 בינואר 2025 וקפואות עד ינואר 2028.');
+  if (r.sale && r.sale.cg) notes.push(`מס השבח הוא הערכה גסה: ההצמדה למדד לפי שיעורי האינפלציה השנתיים, ותאריך המכירה הוא היום.${r.sale.cg.linear && r.sale.cg.preRate ? ` החלק שנצבר עד 2014 חושב לפי ${pct(r.sale.cg.preRate)}, לפי מתווה הביטול ההדרגתי של ההטבה הליניארית.` : ''} בשבח גבוה ייתכן גם מס יסף. הזכאות לפטורים והחישוב המדויק נבדקים מול עורך הדין או רואה החשבון.`);
+  if (r.mortgage) notes.push('ההחזר החודשי הוא הערכה. ההחזר בפועל תלוי בתמהיל ובריבית שתקבלו מהבנק.');
+
+  return `<header class="r-head">
+      <div class="r-title"><h2>דוח עלויות אישי</h2><span>${s.client ? `עבור ${esc(s.client)} · ` : ''}${date}</span></div>
+      <span class="logo" role="img" aria-label="EXTRAMILE קשרי נדל״ן">${LOGO}</span>
+    </header>
+    <p class="r-flag">הערכה בלבד. הדוח אינו ייעוץ משפטי, ייעוץ מס או ייעוץ משכנתאות. ההבהרה המלאה בסוף הדוח.</p>
+    ${summary}${saleBlock}${buyBlock}${moveBlock}${finBlock}
+    <section class="r-notes"><h3>חשוב לדעת</h3><ul>${notes.map(n => `<li>${n}</li>`).join('')}</ul></section>
+    <section class="r-legal"><b>הבהרה.</b> ${LEGAL}</section>
+    <footer class="r-foot"><span>הוכן על ידי ${esc(s.agent || 'ארז מרקוביץ')}, <span class="brand">EXTRAMILE</span> קשרי נדל״ן</span><span><span dir="ltr">${esc(s.phone)}</span> · extra-mile.co.il</span></footer>`;
+}
+
+// a total under each part of the form, so the effect of every number shows right where it is typed
+function sum(id, label, value, lines, bad) {
+  const el = document.getElementById(id);
+  el.className = 'sum' + (bad ? ' bad' : '');
+  el.innerHTML = `<div><b>${label}</b><strong>${value}</strong></div>${lines.filter(Boolean).map(l => `<small>${l}</small>`).join('')}`;
+}
+function renderSums(s, r) {
+  if (r.sale) sum('sum-sale', 'נשאר לכם מהמכירה', ils(r.sale.net), [
+    `מחיר המכירה ${fmt(s.salePrice)} ₪, פחות סילוק המשכנתא ${fmt(s.saleMortgage)} ₪, פחות עמלות, מיסים והוצאות ${fmt(r.sale.costs)} ₪.`,
+    r.sale.cg ? `מתוכם מס שבח משוער: ${fmt(r.sale.cg.tax)} ₪.` : '',
+  ]);
+  sum('sum-buy', 'עלות הקנייה הכוללת', ils(s.buyPrice + r.buy.costs), [
+    `מחיר הדירה ${fmt(s.buyPrice)} ₪, מס רכישה ${fmt(r.buy.tax.total)} ₪, ועוד ${fmt(r.buy.costs - r.buy.tax.total)} ₪ שכר טרחה ועלויות נלוות.`,
+  ]);
+  sum('sum-move', 'סך עלויות המעבר', ils(r.moving), [r.moving ? '' : 'אין עלויות מעבר. אם יש, מוסיפים אותן כאן.']);
+  sum('sum-fin', r.mortgage ? 'משכנתא נדרשת' : 'נשאר לכם בסוף', ils(r.mortgage || r.surplus), [
+    `יש לכם ${fmt(r.available)} ₪, והעסקה כולה עולה ${fmt(r.needed)} ₪.`,
+    r.mortgage ? `אחוז מימון: ${pct(r.ltv)}, המקסימום ל${r.k.label} הוא ${pct(r.k.ltv)}. החזר חודשי משוער: ${fmt(r.monthly)} ₪.` : '',
+    r.equityGap ? `<span class="flag">מעל מגבלת המימון. חסר הון עצמי של ${fmt(r.equityGap)} ₪.</span>` : '',
+    r.pti !== null && r.mortgage ? `ההחזר הוא ${pct(r.pti)} מההכנסה. בנקים מאשרים בדרך כלל עד כ-40%.` : '',
+  ], r.equityGap > 0);
+}
+
+// ---- sending the calculator with the numbers: the whole form travels inside the link, nothing is stored ----
+// Only a plain #token reaches the page inside Claude, and base64url uses exactly those characters.
+const SHARE_BASE = window.claude ? 'https://claude.ai/artifact/Vmkej131JfpDWhYjW9WsuW' : location.href.split('#')[0];
+const shareBox = document.getElementById('share');
+const toB64url = str => btoa(String.fromCharCode(...new TextEncoder().encode(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const fromB64url = tok => new TextDecoder().decode(Uint8Array.from(atob(tok.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)));
+function formSnapshot() {
+  const o = { kind: form.querySelector('[name=kind]:checked').value };
+  form.querySelectorAll('[data-k]').forEach(el => {
+    const v = el.type === 'checkbox' ? (el.checked ? 1 : 0) : el.value;
+    if (v !== '') o[el.id] = v;
+  });
+  return o;
+}
+function restoreFrom(hash) {
+  if (!hash.startsWith('#s')) return false;
+  let o;
+  try { o = JSON.parse(fromB64url(hash.slice(2))); } catch { return false; }
+  if (!o || typeof o !== 'object') return false;
+  const kind = document.getElementById('kind-' + o.kind);
+  if (kind) kind.checked = true;
+  form.querySelectorAll('[data-k]').forEach(el => {
+    if (el.type === 'checkbox') el.checked = !!o[el.id];
+    else el.value = o[el.id] == null ? '' : String(o[el.id]);
+  });
+  return true;
+}
+function fillShare(s) {
+  const url = SHARE_BASE + '#s' + toB64url(JSON.stringify(formSnapshot()));
+  document.getElementById('share-url').value = url;
+  const text = `שלום${s.client ? ' ' + s.client : ''}, הכנתי לכם חישוב של כל העלויות בעסקה. אפשר לפתוח, לשנות את המספרים ולראות איך זה משפיע:
+${url}
+${s.agent || ''}`;
+  document.getElementById('wa').href = 'https://wa.me/?text=' + encodeURIComponent(text);
+}
+
+const report = document.getElementById('report');
+function update() {
+  const s = readState();
+  document.getElementById('sale-fs').hidden = !s.selling;
+  document.getElementById('cg-fs').hidden = s.exempt;
+  const r = calc(s);
+  report.innerHTML = reportHtml(s, r);
+  renderSums(s, r);
+  if (!shareBox.hidden) fillShare(s);
+  document.getElementById('mbar-label').textContent = r.mortgage ? 'משכנתא נדרשת' : 'נשאר לכם בסוף';
+  document.getElementById('mbar-value').innerHTML = ils(r.mortgage || r.surplus);
+}
+
+form.addEventListener('input', update);
+form.addEventListener('change', e => {
+  if (e.target.name === 'kind') {
+    // a home upgrader is the one selling; a first-time buyer has nothing to sell;
+    // an investor's sold apartment is usually not their only one, so it pays capital gains tax
+    if (e.target.value === 'upgrade') document.getElementById('selling').checked = true;
+    if (e.target.value === 'first') document.getElementById('selling').checked = false;
+    document.getElementById('exempt').checked = e.target.value !== 'investor';
+    update();
+  }
+});
+form.addEventListener('focusout', e => {
+  if (e.target.matches('[data-money]') && e.target.value !== '') e.target.value = toNum(e.target.value).toLocaleString('en-US');
+});
+if (restoreFrom(location.hash)) {
+  const agent = document.getElementById('agent').value.trim();
+  document.getElementById('example').textContent =
+    `${agent || 'הסוכן שלכם'} הכין לכם את החישוב הזה עם המספרים של העסקה שלכם. אפשר לשנות כל מספר ולראות מיד איך זה משפיע.`;
+}
+update();
+
+document.getElementById('share-btn').addEventListener('click', e => {
+  shareBox.hidden = !shareBox.hidden;
+  e.currentTarget.setAttribute('aria-expanded', String(!shareBox.hidden));
+  if (!shareBox.hidden) fillShare(readState());
+});
+document.getElementById('copy').addEventListener('click', () => {
+  const input = document.getElementById('share-url');
+  navigator.clipboard.writeText(input.value)
+    .then(() => { msg.textContent = 'הקישור הועתק.'; })
+    .catch(() => { input.select(); msg.textContent = 'סמנו את הקישור והעתיקו אותו.'; });
+});
+
+// ---- PDF ----
+// Inside Claude the file goes through the downloads capability; opened as a plain file it downloads directly.
+const btn = document.getElementById('pdf'), msg = document.getElementById('msg');
+let saver = window.claude ? null : 'local';
+if (window.claude) {
+  btn.hidden = true;
+  claude.use('downloads').then(d => { saver = d; btn.hidden = !d; });
+}
+function makePdf() {
+  // html2pdf returns its own thenable without .finally, so wrap it in a real promise
+  return Promise.resolve(html2pdf().set({
+    margin: [10, 10, 12, 10],
+    image: { type: 'jpeg', quality: 0.95 },
+    // without scroll 0 the capture is shifted by however far the page is scrolled: blank first page, cut-off end
+    html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
+    jsPDF: { unit: 'mm', format: 'a4' },
+    pagebreak: { mode: 'css', avoid: ['.r-summary', '.r-block', '.r-notes', 'tr'] },
+  }).from(report).outputPdf('blob'));
+}
+btn.addEventListener('click', async () => {
+  const s = readState();
+  const filename = `דוח עלויות${s.client ? ' - ' + s.client.replace(/[\\/:*?"<>|]/g, '') : ''}.pdf`;
+  btn.disabled = true;
+  msg.textContent = 'מכין את הדוח...';
+  try {
+    await document.fonts.ready;
+    report.classList.add('exporting');
+    const blob = await makePdf().finally(() => report.classList.remove('exporting'));
+    if (saver === 'local') {
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: filename });
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    } else {
+      await saver.save({ filename, data: blob });
+    }
+    msg.textContent = 'הדוח מוכן.';
+  } catch (e) {
+    msg.textContent = e && e.code === 'declined' ? 'ההורדה בוטלה.' : 'לא הצלחנו להפיק את הדוח. נסו שוב.';
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</html>
