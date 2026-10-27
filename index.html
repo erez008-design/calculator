@@ -64,6 +64,7 @@ legend + * { clear: both; }
 .f { display: grid; gap: 0.25rem; align-content: start; }
 .f > span { font-weight: 700; font-size: 0.98rem; }
 .f small { color: var(--muted); font-size: 0.88rem; line-height: 1.45; }
+.f small.must { color: var(--ink); font-weight: 700; }
 .inp { display: flex; align-items: stretch; background: var(--paper); border: 2px solid var(--line); }
 .inp:focus-within { border-color: var(--cyan-ui, var(--cyan)); }
 .inp input { flex: 1; min-width: 0; border: 0; padding: 0.55rem 0.7rem; font: inherit; font-weight: 600; color: var(--ink); background: transparent; outline: none; font-variant-numeric: tabular-nums; }
@@ -252,9 +253,9 @@ fieldset > small { color: var(--muted); font-size: 0.88rem; line-height: 1.45; m
 
     <fieldset>
       <legend>המימון</legend>
-      <p class="intro">הכסף שיש לכם מול העלות הכוללת. מה שחסר הוא המשכנתא, והבנק בודק שני דברים: כמה אחוז מהמחיר הוא מממן, וכמה ההחזר החודשי מהכנסתכם.</p>
+      <p class="intro">הכסף שיש לכם מול העלות הכוללת. מה שחסר הוא המשכנתא, והבנק בודק שני דברים: איזה אחוז ממחיר הנכס הוא מממן, ומהו ההחזר החודשי ביחס להכנסתכם.</p>
       <div class="fields">
-        <label class="f"><span>הון עצמי</span><span class="inp"><input id="equity" data-k="equity" data-money inputmode="numeric" value="0"><i>₪</i></span><small>חסכונות ועזרה מהמשפחה. בלי הכסף מהמכירה, כי הוא כבר נספר למעלה.</small></label>
+        <label class="f"><span>הון עצמי</span><span class="inp"><input id="equity" data-k="equity" data-money inputmode="numeric" value="0"><i>₪</i></span><small class="must">חסכונות ועזרה מהמשפחה. לא כולל את כספי המכירה, כי הם כבר נספרו למעלה.</small></label>
         <label class="f"><span>ריבית ממוצעת משוערת</span><span class="inp"><input id="rate" data-k="rate" inputmode="decimal" value="4.5"><i>%</i></span><small>לעדכן לפי ההצעה מהבנק.</small></label>
         <label class="f"><span>תקופת המשכנתא</span><span class="inp"><input id="years" data-k="years" inputmode="numeric" value="30"><i>שנים</i></span><small>תקופה ארוכה יותר מורידה את ההחזר החודשי, אבל מעלה את סך הריבית.</small></label>
         <label class="f"><span>הכנסה חודשית נטו של משק הבית</span><span class="inp"><input id="income" data-k="income" data-money inputmode="numeric" placeholder="לא חובה"><i>₪</i></span><small>כדי לבדוק אם הבנק יאשר את ההחזר.</small></label>
